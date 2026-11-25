@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dapur Ngebul — Game Masak Cepat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  img.tw { height: 1em; width: 1em; vertical-align: -.12em; }
+  .bin .tw { height: 42px; width: 42px; vertical-align: middle; }
+  #plate .tw { height: 1em; width: 1em; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: #241a12;
+    color: #2b2118;
+    min-height: 100vh;
+  }
+  #app { max-width: 1080px; margin: 0 auto; padding: 12px 16px 20px; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(90deg, #c0392b, #e67e22);
+    color: #fff; border-radius: 14px; padding: 10px 18px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.45);
+  }
+  header .logo { font-size: 28px; font-weight: 900; letter-spacing: .5px; }
+  header .logo small { display: block; font-size: 12px; font-weight: 600; opacity: .9; letter-spacing: 2px; }
+  .hud { display: flex; gap: 14px; align-items: center; font-weight: 800; }
+  .hud .pill {
+    background: rgba(0,0,0,.28); border-radius: 999px; padding: 7px 14px;
+    font-size: 18px; white-space: nowrap;
+  }
+  .hud .pill.timer.low { background: #8e1616; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .55; } }
+
+  #board {
+    margin-top: 12px; background: #33291f; border-radius: 14px; padding: 12px 14px 14px;
+    border: 6px solid #6b4a2f; box-shadow: inset 0 0 0 2px #4a3220, 0 4px 14px rgba(0,0,0,.4);
+  }
+  #board h2 { color: #ffe9b0; font-size: 15px; letter-spacing: 3px; margin-bottom: 10px; }
+  #orders { display: flex; gap: 12px; min-height: 118px; }
+  .ticket {
+    flex: 1; background: #fff8e7; border-radius: 10px; padding: 10px 12px;
+    box-shadow: 0 3px 0 #d8c49a; position: relative; max-width: 340px;
+  }
+  .ticket.hot { outline: 3px solid #ffcf3f; }
+  .ticket .dish { font-size: 19px; font-weight: 900; }
+  .ticket .need { font-size: 26px; letter-spacing: 4px; margin: 6px 0 8px; }
+  .ticket .patience { height: 9px; background: #e5d9bd; border-radius: 99px; overflow: hidden; }
+  .ticket .patience i { display: block; height: 100%; background: #27ae60; border-radius: 99px; transition: width .2s linear; }
+  .ticket .patience i.warn { background: #e67e22; }
+  .ticket .patience i.crit { background: #c0392b; }
+  .ticket .num { position: absolute; top: 6px; right: 10px; font-size: 12px; font-weight: 800; color: #a08a5a; }
+  #orders .empty {
+    flex: 1; color: #b9a684; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-style: italic;
+  }
+
+  main { display: flex; gap: 12px; margin-top: 12px; }
+  #counter {
+    flex: 1.25; background: linear-gradient(180deg, #a9713f, #8a5a2e);
+    border-radius: 14px; padding: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  }
+  #counter h2 { color: #ffe9b0; font-size: 15px; letter-spacing: 3px; margin-bottom: 10px; }
+  #bins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .bin {
+    background: #fff8e7; border-radius: 12px; padding: 10px 6px 8px; text-align: center;
+    cursor: pointer; box-shadow: 0 3px 0 #d8c49a; user-select: none; transition: transform .06s;
+  }
+  .bin:hover { transform: translateY(-2px); }
+  .bin:active { transform: translateY(2px); box-shadow: none; }
+  .bin .emoji { font-size: 42px; line-height: 1.1; }
+  .bin .name { font-weight: 800; font-size: 14px; margin-top: 2px; }
+  .bin .key {
+    display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; color: #8a6d3b;
+    border: 1px solid #d8c49a; border-radius: 5px; padding: 1px 7px; background: #fdf3d8;
+  }
+
+  #station {
+    flex: 1; background: #3a2f26; border-radius: 14px; padding: 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4); color: #ffe9b0;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  #station h2 { font-size: 15px; letter-spacing: 3px; align-self: flex-start; }
+  #plate {
+    width: 190px; height: 190px; border-radius: 50%; background: #fdf6e3;
+    border: 8px solid #d8c49a; display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 4px; padding: 18px; font-size: 40px; color: #8a6d3b; position: relative;
+  }
+  #plate.ready {
+    border-color: #27ae60; box-shadow: 0 0 0 5px rgba(39,174,96,.35), 0 0 26px rgba(39,174,96,.55);
+    animation: glow 1s infinite;
+  }
+  @keyframes glow { 50% { box-shadow: 0 0 0 5px rgba(39,174,96,.35), 0 0 40px rgba(39,174,96,.8); } }
+  #plate .dishname {
+    position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%);
+    background: #27ae60; color: #fff; font-size: 13px; font-weight: 800;
+    padding: 3px 12px; border-radius: 99px; white-space: nowrap;
+  }
+  #plate .dishname.burnt { background: #7b7b7b; }
+  #cookbar { width: 100%; height: 14px; background: #241a12; border-radius: 99px; overflow: hidden; }
+  #cookbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff9f1a, #ff5e1a); }
+  #stove { font-size: 15px; font-weight: 700; color: #ffb37a; min-height: 20px; }
+  .actions { display: flex; gap: 10px; width: 100%; }
+  .actions button {
+    flex: 1; border: none; border-radius: 12px; padding: 13px 6px; font-size: 16px; font-weight: 900;
+    cursor: pointer; color: #fff; transition: transform .06s;
+  }
+  .actions button:active { transform: translateY(2px); }
+  .actions button:disabled { opacity: .45; cursor: not-allowed; }
+  #btnCook { background: #e67e22; }
+  #btnServe { background: #27ae60; }
+  #btnTrash { background: #7f8c8d; flex: .6; }
+  #toast {
+    min-height: 22px; font-size: 14px; font-weight: 700; color: #ffd166; text-align: center;
+  }
+  footer { margin-top: 12px; color: #b9a684; font-size: 13px; text-align: center; }
+  footer b { color: #ffe9b0; }
+
+  #overlay {
+    position: fixed; inset: 0; background: rgba(20,12,6,.82); display: none;
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  #overlay.show { display: flex; }
+  .card {
+    background: #fff8e7; border-radius: 18px; padding: 28px 34px; text-align: center;
+    max-width: 460px; box-shadow: 0 12px 40px rgba(0,0,0,.6);
+  }
+  .card h1 { font-size: 34px; color: #c0392b; }
+  .card p { margin: 10px 0; font-size: 15px; line-height: 1.55; color: #5b4632; }
+  .card .big { font-size: 44px; }
+  .card button {
+    margin-top: 12px; border: none; border-radius: 12px; padding: 14px 34px;
+    font-size: 18px; font-weight: 900; background: #e67e22; color: #fff; cursor: pointer;
+  }
+  .card .recipes { text-align: left; font-size: 14px; line-height: 1.9; margin: 12px auto 0; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo"><img class="tw" src="twemoji/72x72/1f373.png" alt=""> DAPUR NGEBUL<small>GAME MASAK CEPAT</small></div>
+    <div class="hud">
+      <span class="pill timer"><img class="tw" src="twemoji/72x72/23f1.png" alt=""> <span id="hudTime">2:30</span></span>
+      <span class="pill"><img class="tw" src="twemoji/72x72/1fa99.png" alt=""> <span id="hudCoins">0</span></span>
+      <span class="pill" id="hudHearts"></span>
+      <span class="pill" id="hudLevel">Lv 1</span>
+    </div>
+  </header>
+
+  <section id="board">
+    <h2><img class="tw" src="twemoji/72x72/1f4cb.png" alt=""> PAPAN PESANAN</h2>
+    <div id="orders"></div>
+  </section>
+
+  <main>
+    <section id="counter">
+      <h2><img class="tw" src="twemoji/72x72/1f9fa.png" alt=""> BAHAN DI MEJA</h2>
+      <div id="bins"></div>
+    </section>
+
+    <section id="station">
+      <h2><img class="tw" src="twemoji/72x72/1f37d.png" alt=""> PIRING RACIKAN</h2>
+      <div id="plate"><span style="font-size:15px;font-weight:700">Klik bahan<br>untuk merakit</span></div>
+      <div id="cookbar"><i id="cookfill"></i></div>
+      <div id="stove"><img class="tw" src="twemoji/72x72/1f525.png" alt=""> Kompor siap</div>
+      <div class="actions">
+        <button id="btnCook"><img class="tw" src="twemoji/72x72/1f525.png" alt=""> MASAK</button>
+        <button id="btnServe"><img class="tw" src="twemoji/72x72/1f37d.png" alt=""> SAJIKAN</button>
+        <button id="btnTrash"><img class="tw" src="twemoji/72x72/1f5d1.png" alt=""></button>
+      </div>
+      <div id="toast"></div>
+    </section>
+  </main>
+
+  <footer>Tombol: <b>1–6</b> pilih bahan &nbsp;·&nbsp; <b>Spasi</b> masak &nbsp;·&nbsp; <b>Enter</b> sajikan &nbsp;·&nbsp; <b>T</b> buang &nbsp;·&nbsp; Sajikan hidangan sebelum waktu pesanan habis!</footer>
+</div>
+
+<div id="overlay" class="show">
+  <div class="card" id="overlayCard"></div>
+</div>
+<script>
+"use strict";
+// Dapur Ngebul — game masak cepat. Rakit bahan, masak di kompor, sajikan ke pelanggan.
+
+var INGREDIENTS = [
+  { id: "nasi",   emoji: "🍚", code: "1f35a", name: "Nasi",   key: "1" },
+  { id: "mie",    emoji: "🍜", code: "1f35c", name: "Mie",    key: "2" },
+  { id: "ayam",   emoji: "🍗", code: "1f357", name: "Ayam",   key: "3" },
+  { id: "telur",  emoji: "🍳", code: "1f373", name: "Telur",  key: "4" },
+  { id: "sayur",  emoji: "🥬", code: "1f96c", name: "Sayur",  key: "5" },
+  { id: "sambal", emoji: "🌶️", code: "1f336", name: "Sambal", key: "6" }
+];
+
+var DISHES = [
+  { id: "nasi-telur",   name: "Nasi Telur",   emoji: "🍳", code: "1f373", need: ["nasi", "telur"],          price: 8 },
+  { id: "nasi-goreng",  name: "Nasi Goreng",  emoji: "🍛", code: "1f35b", need: ["nasi", "telur", "sambal"], price: 12 },
+  { id: "mie-goreng",   name: "Mie Goreng",   emoji: "🍜", code: "1f35c", need: ["mie", "ayam", "sayur"],    price: 12 },
+  { id: "mie-pedas",    name: "Mie Pedas",    emoji: "🌶️", code: "1f336", need: ["mie", "sambal", "telur"],  price: 12 },
+  { id: "soto-ayam",    name: "Soto Ayam",    emoji: "🍲", code: "1f372", need: ["ayam", "telur", "sayur"],  price: 14 },
+  { id: "ayam-geprek",  name: "Ayam Geprek",  emoji: "🍗", code: "1f357", need: ["ayam", "sambal", "nasi"],   price: 14 }
+];
+
+// Gambar emoji berwarna (Twemoji, CC-BY 4.0) dari folder twemoji/ — dipakai
+// sebagai <img> supaya tampil berwarna di semua browser, termasuk headless.
+function em(code, alt) {
+  return '<img class="tw" src="twemoji/72x72/' + code + '.png" alt="' + (alt || "") + '">';
+}
+
+var SHIFT_SECONDS = 150;
+var COOK_SECONDS = 3;
+
+var state = null;
+var timerId = null;
+var audioCtx = null;
+var shotMode = false;
+
+function newState() {
+  return {
+    screen: "title", coins: 0, hearts: 3, level: 1, served: 0, combo: 0,
+    timeLeft: SHIFT_SECONDS, orders: [], plate: [], cooking: false,
+    cookLeft: 0, dish: null, burnt: false, nextOrderId: 1, spawnIn: 2
+  };
+}
+
+function ingredientById(id) {
+  for (var i = 0; i < INGREDIENTS.length; i++) if (INGREDIENTS[i].id === id) return INGREDIENTS[i];
+  return null;
+}
+function dishById(id) {
+  for (var i = 0; i < DISHES.length; i++) if (DISHES[i].id === id) return DISHES[i];
+  return null;
+}
+function matchDish(plate) {
+  var key = plate.slice().sort().join("+");
+  for (var i = 0; i < DISHES.length; i++) {
+    if (DISHES[i].need.slice().sort().join("+") === key) return DISHES[i];
+  }
+  return null;
+}
+function patienceMax() { return Math.max(25, 45 - (state.level - 1) * 3); }
+function spawnEvery() { return Math.max(4, 8 - (state.level - 1)); }
+
+function fmtTime(s) {
+  s = Math.max(0, Math.ceil(s));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+function toast(msg) { document.getElementById("toast").textContent = msg; }
+
+function beep(freq, dur, type) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch (e) { /* suara opsional */ }
+}
+function sfx(kind) {
+  if (kind === "add") beep(520, 0.08, "triangle");
+  else if (kind === "cook") { beep(180, 0.25, "sawtooth"); }
+  else if (kind === "ding") { beep(880, 0.15, "sine"); setTimeout(function () { beep(1320, 0.2, "sine"); }, 120); }
+  else if (kind === "bad") beep(140, 0.3, "square");
+  else if (kind === "lose") { beep(220, 0.25, "square"); setTimeout(function () { beep(160, 0.35, "square"); }, 180); }
+}
+
+function renderBins() {
+  var box = document.getElementById("bins");
+  box.innerHTML = "";
+  INGREDIENTS.forEach(function (ing) {
+    var d = document.createElement("div");
+    d.className = "bin";
+    d.innerHTML = '<div class="emoji">' + em(ing.code, ing.name) + '</div><div class="name">' + ing.name +
+      '</div><span class="key">tombol ' + ing.key + "</span>";
+    d.onclick = function () { addIngredient(ing.id); };
+    box.appendChild(d);
+  });
+}
+
+function renderHeader() {
+  var t = document.getElementById("hudTime");
+  t.textContent = fmtTime(state.timeLeft);
+  t.parentElement.classList.toggle("low", state.timeLeft <= 30);
+  document.getElementById("hudCoins").textContent = state.coins;
+  var hearts = "";
+  for (var h = 0; h < 3; h++) hearts += em(h < state.hearts ? "2764" : "1f5a4", "hati");
+  document.getElementById("hudHearts").innerHTML = hearts;
+  document.getElementById("hudLevel").textContent = "Lv " + state.level;
+}
+
+function renderOrders() {
+  var box = document.getElementById("orders");
+  box.innerHTML = "";
+  if (!state.orders.length) {
+    box.innerHTML = '<div class="empty">Belum ada pesanan — pelanggan segera datang…</div>';
+    return;
+  }
+  state.orders.forEach(function (o, idx) {
+    var dish = dishById(o.dish);
+    var pct = Math.max(0, (o.patience / o.max) * 100);
+    var cls = pct > 50 ? "" : (pct > 25 ? "warn" : "crit");
+    var d = document.createElement("div");
+    d.className = "ticket" + (idx === 0 ? " hot" : "");
+    d.innerHTML = '<span class="num">#' + o.id + '</span><div class="dish">' + em(dish.code, dish.name) + " " + dish.name +
+      '</div><div class="need">' + dish.need.map(function (id) { return em(ingredientById(id).code, id); }).join("") +
+      '</div><div class="patience"><i class="' + cls + '" style="width:' + pct + '%"></i></div>';
+    d.onclick = function () { tryServe(o.id); };
+    box.appendChild(d);
+  });
+}
+
+function renderPlate() {
+  var p = document.getElementById("plate");
+  var fill = document.getElementById("cookfill");
+  var stove = document.getElementById("stove");
+  p.classList.remove("ready");
+  if (state.cooking) {
+    var pct = Math.round((1 - state.cookLeft / COOK_SECONDS) * 100);
+    fill.style.width = pct + "%";
+    stove.textContent = "Memasak… " + pct + "%";
+    p.innerHTML = state.plate.map(function (id) { return em(ingredientById(id).code, id); }).join("");
+    return;
+  }
+  fill.style.width = "0";
+  if (state.dish) {
+    var dish = dishById(state.dish);
+    p.classList.add("ready");
+    p.innerHTML = '<span style="font-size:64px">' + em(dish.code, dish.name) + '</span><span class="dishname">' +
+      dish.name + " siap!</span>";
+    stove.textContent = "Piring siap disajikan!";
+  } else if (state.burnt) {
+    p.innerHTML = '<span style="font-size:64px">' + em("1f525", "api") + '</span><span class="dishname burnt">Gosong!</span>';
+    stove.textContent = "Racikan tidak cocok — buang dan rakit ulang.";
+  } else if (state.plate.length) {
+    p.innerHTML = state.plate.map(function (id) { return em(ingredientById(id).code, id); }).join("");
+    var m = matchDish(state.plate);
+    stove.textContent = m ? m.name + " — tinggal dimasak!" : "Merakit… (" + state.plate.length + " bahan)";
+  } else {
+    p.innerHTML = '<span style="font-size:15px;font-weight:700">Klik bahan<br>untuk merakit</span>';
+    stove.textContent = "Kompor siap";
+  }
+  document.getElementById("btnCook").disabled = state.cooking || state.plate.length < 2 || !!state.dish || state.burnt;
+  document.getElementById("btnServe").disabled = state.cooking || !state.dish;
+  document.getElementById("btnTrash").disabled = state.cooking || (!state.plate.length && !state.dish && !state.burnt);
+}
+
+function renderAll() { renderHeader(); renderOrders(); renderPlate(); }
+
+function spawnOrder(dishId) {
+  var pool = DISHES.filter(function (d) { return state.level > 1 || d.need.length <= 2 || d.id !== "soto-ayam"; });
+  var pick = dishId || pool[Math.floor(Math.random() * pool.length)].id;
+  var max = patienceMax();
+  state.orders.push({ id: state.nextOrderId++, dish: pick, patience: max, max: max });
+  if (state.orders.length > 3) state.orders.shift();
+}
+
+function addIngredient(id) {
+  if (state.screen !== "play" || state.cooking || state.dish || state.burnt) return;
+  if (state.plate.length >= 4) { toast("Piring penuh — masak atau buang dulu."); sfx("bad"); return; }
+  state.plate.push(id);
+  sfx("add");
+  toast(ingredientById(id).name + " masuk piring.");
+  renderPlate();
+}
+
+function startCooking() {
+  if (state.screen !== "play" || state.cooking || state.plate.length < 2 || state.dish || state.burnt) return;
+  state.cooking = true; state.cookLeft = COOK_SECONDS;
+  sfx("cook");
+  toast("Memasak di kompor…");
+  renderPlate();
+}
+
+function finishCooking() {
+  state.cooking = false;
+  var dish = matchDish(state.plate);
+  if (dish) { state.dish = dish.id; sfx("ding"); toast(dish.name + " matang! Sajikan sekarang."); }
+  else { state.burnt = true; sfx("bad"); toast("Racikan tidak cocok — gosong!"); }
+  state.plate = [];
+  renderPlate();
+}
+
+function tryServe(orderId) {
+  if (state.screen !== "play" || state.cooking || !state.dish) {
+    if (state.screen === "play" && !state.dish) toast("Masak dulu hidangannya sampai siap.");
+    return;
+  }
+  var idx = -1;
+  for (var i = 0; i < state.orders.length; i++) {
+    if (orderId === undefined || state.orders[i].id === orderId) {
+      if (state.orders[i].dish === state.dish) { idx = i; break; }
+      if (orderId !== undefined) break;
+    }
+  }
+  if (idx < 0) { toast("Tidak ada pesanan yang cocok dengan hidangan ini!"); sfx("bad"); return; }
+  var order = state.orders[idx];
+  var dish = dishById(state.dish);
+  var tip = Math.round((order.patience / order.max) * 10);
+  state.coins += dish.price + tip;
+  state.served++; state.combo++;
+  if (state.served % 4 === 0) { state.level++; toast("🎉 Naik ke level " + state.level + " — pelanggan makin tidak sabar!"); }
+  else toast("🍽️ " + dish.name + " tersaji! +" + (dish.price + tip) + " koin" + (tip > 0 ? " (tip " + tip + ")" : ""));
+  state.orders.splice(idx, 1);
+  state.dish = null;
+  sfx("ding");
+  renderAll();
+}
+
+function trashPlate() {
+  if (state.cooking) return;
+  if (!state.plate.length && !state.dish && !state.burnt) return;
+  state.plate = []; state.dish = null; state.burnt = false; state.combo = 0;
+  toast("Piring dibuang. Rakit lagi.");
+  renderPlate();
+}
+
+function gameOver(reason) {
+  if (state.screen !== "play") return;
+  state.screen = "over";
+  clearInterval(timerId);
+  sfx("lose");
+  var card = document.getElementById("overlayCard");
+  card.innerHTML = '<div class="big">' + em("1f3c1", "bendera") + '</div><h1>' + reason + '</h1>' +
+    "<p>Hidangan tersaji: <b>" + state.served + "</b><br>Koin terkumpul: <b>" + em("1fa99", "koin") + " " + state.coins +
+    "</b><br>Level tercapai: <b>" + state.level + "</b></p>" +
+    "<p>Terima kasih sudah memasak di Dapur Ngebul!</p>" +
+    '<button id="btnAgain">' + em("1f504", "") + ' MAIN LAGI</button>';
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("btnAgain").onclick = startGame;
+}
+
+function showTitle() {
+  var card = document.getElementById("overlayCard");
+  card.innerHTML = '<div class="big">' + em("1f373", "wajan") + '</div><h1>DAPUR NGEBUL</h1>' +
+    "<p><b>Game masak cepat!</b> Pelanggan memesan, kamu merakit bahannya di piring, " +
+    "masak di kompor, lalu sajikan sebelum waktu pesanan habis.</p>" +
+    '<div class="recipes">' +
+    em("1f373", "") + " Nasi Telur — Nasi + Telur<br>" +
+    em("1f35b", "") + " Nasi Goreng — Nasi + Telur + Sambal<br>" +
+    em("1f35c", "") + " Mie Goreng — Mie + Ayam + Sayur<br>" +
+    em("1f336", "") + " Mie Pedas — Mie + Sambal + Telur<br>" +
+    em("1f372", "") + " Soto Ayam — Ayam + Telur + Sayur<br>" +
+    em("1f357", "") + " Ayam Geprek — Ayam + Sambal + Nasi</div>" +
+    '<br><button id="btnStart">' + em("25b6", "") + ' MULAI MEMASAK</button>';
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("btnStart").onclick = startGame;
+}
+
+function tick() {
+  if (state.screen !== "play" || shotMode) return;
+  state.timeLeft -= 0.1;
+  state.orders.forEach(function (o) { o.patience -= 0.1; });
+  for (var i = state.orders.length - 1; i >= 0; i--) {
+    if (state.orders[i].patience <= 0) {
+      state.orders.splice(i, 1);
+      state.hearts--; state.combo = 0;
+      sfx("lose");
+      toast("😤 Pelanggan pergi karena terlalu lama menunggu!");
+      if (state.hearts <= 0) { renderAll(); gameOver("Semua Pelanggan Pergi!"); return; }
+    }
+  }
+  if (state.cooking) {
+    state.cookLeft -= 0.1;
+    if (state.cookLeft <= 0) finishCooking();
+  }
+  state.spawnIn -= 0.1;
+  if (state.spawnIn <= 0 && state.orders.length < 3) { spawnOrder(); state.spawnIn = spawnEvery(); }
+  if (state.timeLeft <= 0) { state.timeLeft = 0; renderAll(); gameOver("Shift Selesai!"); return; }
+  renderAll();
+}
+
+function startGame() {
+  state = newState();
+  state.screen = "play";
+  document.getElementById("overlay").classList.remove("show");
+  toast("");
+  spawnOrder("nasi-telur");
+  spawnOrder("mie-goreng");
+  clearInterval(timerId);
+  timerId = setInterval(tick, 100);
+  renderAll();
+}
+
+function setupShot(name) {
+  shotMode = true;
+  state = newState();
+  state.screen = "play";
+  document.getElementById("overlay").classList.remove("show");
+  if (name === "start") {
+    state.screen = "title";
+    state.timeLeft = 150; state.coins = 0;
+    state.orders = [
+      { id: 1, dish: "nasi-goreng", patience: 38, max: 45 },
+      { id: 2, dish: "mie-goreng", patience: 30, max: 45 },
+      { id: 3, dish: "soto-ayam", patience: 42, max: 45 }
+    ];
+    showTitle();
+  } else if (name === "play") {
+    state.timeLeft = 130; state.coins = 40; state.level = 1; state.served = 2;
+    state.orders = [
+      { id: 4, dish: "nasi-goreng", patience: 34, max: 45 },
+      { id: 5, dish: "ayam-geprek", patience: 22, max: 45 },
+      { id: 6, dish: "mie-pedas", patience: 41, max: 45 }
+    ];
+  } else if (name === "assembly") {
+    state.timeLeft = 105; state.coins = 64; state.level = 2; state.served = 5;
+    state.orders = [
+      { id: 7, dish: "nasi-goreng", patience: 28, max: 42 },
+      { id: 8, dish: "soto-ayam", patience: 36, max: 42 }
+    ];
+    state.plate = ["nasi", "telur"];
+  } else if (name === "serve") {
+    state.timeLeft = 80; state.coins = 90; state.level = 2; state.served = 7;
+    state.orders = [
+      { id: 9, dish: "nasi-goreng", patience: 30, max: 42 },
+      { id: 10, dish: "mie-goreng", patience: 18, max: 42 }
+    ];
+    state.dish = "nasi-goreng";
+  }
+  renderAll();
+}
+
+document.getElementById("btnCook").onclick = startCooking;
+document.getElementById("btnServe").onclick = function () { tryServe(); };
+document.getElementById("btnTrash").onclick = trashPlate;
+document.addEventListener("keydown", function (e) {
+  if (state.screen !== "play") return;
+  var ing = null;
+  INGREDIENTS.forEach(function (g) { if (g.key === e.key) ing = g; });
+  if (ing) addIngredient(ing.id);
+  else if (e.key === " ") { e.preventDefault(); startCooking(); }
+  else if (e.key === "Enter") tryServe();
+  else if (e.key === "t" || e.key === "T") trashPlate();
+});
+
+renderBins();
+(function init() {
+  var q = new URLSearchParams(window.location.search);
+  var shot = q.get("shot");
+  if (shot) setupShot(shot);
+  else { state = newState(); showTitle(); renderAll(); }
+})();
+</script>
+</body>
+</html>
