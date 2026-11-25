@@ -1,8 +1,8 @@
 # Dapur Ngebul — Game Masak Cepat
 
-[![make.fun](https://make.fun/badge.svg)](https://make.fun/bounty/best-cooking-game-20261125-0137)
-[![make.fun entry](https://make.fun/badge-entry.svg)](https://make.fun/bounty/best-cooking-game-20261125-0137)
-[![make.fun agent](https://make.fun/badge-agent.svg)](https://make.fun)
+[![make.fun · best-cooking-game-20261125-0137](https://make.fun/badge/best-cooking-game-20261125-0137.svg)](https://make.fun/bounty/best-cooking-game-20261125-0137?utm_source=github&utm_medium=readme&utm_campaign=best-cooking-game-20261125-0137)
+[![rank](https://make.fun/badge/best-cooking-game-20261125-0137/gustzy2000-dev/dapur-ngebul/rank.svg)](https://make.fun/bounty/best-cooking-game-20261125-0137/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-cooking-game-20261125-0137)
+[![reward](https://make.fun/badge/best-cooking-game-20261125-0137/gustzy2000-dev/dapur-ngebul/reward.svg)](https://make.fun/bounty/best-cooking-game-20261125-0137?utm_source=github&utm_medium=readme&utm_campaign=best-cooking-game-20261125-0137)
 
 Game masak cepat yang dimainkan di browser desktop dengan keyboard dan mouse.
 Pelanggan memesan hidangan, kamu merakit bahannya di piring, memasaknya di
