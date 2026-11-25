@@ -321,6 +321,9 @@ function renderPlate() {
     fill.style.width = pct + "%";
     stove.textContent = "Memasak… " + pct + "%";
     p.innerHTML = state.plate.map(function (id) { return em(ingredientById(id).code, id); }).join("");
+    document.getElementById("btnCook").disabled = true;
+    document.getElementById("btnServe").disabled = true;
+    document.getElementById("btnTrash").disabled = true;
     return;
   }
   fill.style.width = "0";
@@ -485,6 +488,11 @@ function startGame() {
 
 function setupShot(name) {
   shotMode = true;
+  // Bekukan semua animasi CSS supaya hasil screenshot deterministik
+  // (efek glow pada piring siap saji berdenyut dan fasenya berubah-ubah).
+  var freeze = document.createElement("style");
+  freeze.textContent = "* { animation: none !important; }";
+  document.head.appendChild(freeze);
   state = newState();
   state.screen = "play";
   document.getElementById("overlay").classList.remove("show");
